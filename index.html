@@ -1,0 +1,1094 @@
+<!DOCTYPE html>
+<html lang="uk" class="h-full">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FlameLingo - Вивчай англійську палаюче та легко!</title>
+    
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- Google Fonts: Nunito -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@500;600;700;800;900&display=swap" rel="stylesheet">
+    
+    <!-- FontAwesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <!-- Canvas Confetti -->
+    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Nunito', 'sans-serif'],
+                    },
+                    colors: {
+                        flame: {
+                            red: '#FF334B',
+                            redDark: '#D01B31',
+                            redLight: '#FFF0F2',
+                            orange: '#FF7A00',
+                            orangeDark: '#E05D00',
+                            amber: '#FFC700',
+                            amberDark: '#E5AF00',
+                            purple: '#A855F7',
+                            purpleDark: '#7E22CE',
+                            gray: '#E8ECEF',
+                            grayDark: '#A0AEC0',
+                            text: '#2D3748',
+                            darkBg: '#1A0F12'
+                        }
+                    },
+                    boxShadow: {
+                        '3d-red': '0 4px 0 #D01B31',
+                        '3d-orange': '0 4px 0 #E05D00',
+                        '3d-amber': '0 4px 0 #E5AF00',
+                        '3d-purple': '0 4px 0 #7E22CE',
+                        '3d-gray': '0 4px 0 #CBD5E0',
+                        '3d-blue': '0 4px 0 #2563EB',
+                    }
+                }
+            }
+        };
+    </script>
+
+    <style>
+        /* Custom 3D Button Effects */
+        .btn-3d {
+            transition: all 0.1s ease;
+            position: relative;
+        }
+        .btn-3d:active:not(:disabled) {
+            transform: translateY(4px);
+            box-shadow: none !important;
+        }
+
+        /* Pulse Ring for Active Flame Node */
+        @keyframes pulse-flame {
+            0% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(255, 51, 75, 0.7); }
+            70% { transform: scale(1.06); box-shadow: 0 0 0 18px rgba(255, 51, 75, 0); }
+            100% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(255, 51, 75, 0); }
+        }
+        .active-node-pulse {
+            animation: pulse-flame 2s infinite;
+        }
+
+        /* Speech Bubble Arrow for Sparky Fox Mascot */
+        .speech-bubble::before {
+            content: '';
+            position: absolute;
+            left: -12px;
+            top: 22px;
+            border-width: 8px 12px 8px 0;
+            border-style: solid;
+            border-color: transparent #CBD5E0 transparent transparent;
+        }
+        .speech-bubble::after {
+            content: '';
+            position: absolute;
+            left: -9px;
+            top: 23px;
+            border-width: 7px 10px 7px 0;
+            border-style: solid;
+            border-color: transparent #FFFFFF transparent transparent;
+        }
+
+        /* Custom Scrollbar */
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #FFF0F2;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #FF8BA0;
+            border-radius: 9999px;
+        }
+    </style>
+</head>
+<body class="h-full bg-white text-flame-text font-sans antialiased select-none flex flex-col md:flex-row">
+
+    <script>
+        let soundEnabled = true;
+        const AudioContext = window.AudioContext || window.webkitAudioContext;
+        let audioCtx = null;
+
+        function playSynthesizedSound(type) {
+            if (!soundEnabled) return;
+            try {
+                if (!audioCtx) audioCtx = new AudioContext();
+                const now = audioCtx.currentTime;
+
+                if (type === 'correct') {
+                    const notes = [587.33, 739.99, 880.00, 1174.66];
+                    notes.forEach((freq, idx) => {
+                        const osc = audioCtx.createOscillator();
+                        const gain = audioCtx.createGain();
+                        osc.type = 'triangle';
+                        osc.frequency.setValueAtTime(freq, now + idx * 0.05);
+                        gain.gain.setValueAtTime(0.25, now + idx * 0.05);
+                        gain.gain.exponentialRampToValueAtTime(0.001, now + idx * 0.05 + 0.3);
+                        osc.connect(gain);
+                        gain.connect(audioCtx.destination);
+                        osc.start(now + idx * 0.05);
+                        osc.stop(now + idx * 0.05 + 0.3);
+                    });
+                } else if (type === 'wrong') {
+                    const osc = audioCtx.createOscillator();
+                    const gain = audioCtx.createGain();
+                    osc.type = 'sawtooth';
+                    osc.frequency.setValueAtTime(160, now);
+                    osc.frequency.linearRampToValueAtTime(110, now + 0.28);
+                    gain.gain.setValueAtTime(0.2, now);
+                    gain.gain.exponentialRampToValueAtTime(0.01, now + 0.28);
+                    osc.connect(gain);
+                    gain.connect(audioCtx.destination);
+                    osc.start(now);
+                    osc.stop(now + 0.28);
+                } else if (type === 'pop') {
+                    const osc = audioCtx.createOscillator();
+                    const gain = audioCtx.createGain();
+                    osc.type = 'sine';
+                    osc.frequency.setValueAtTime(450, now);
+                    osc.frequency.exponentialRampToValueAtTime(900, now + 0.04);
+                    gain.gain.setValueAtTime(0.15, now);
+                    gain.gain.exponentialRampToValueAtTime(0.01, now + 0.04);
+                    osc.connect(gain);
+                    gain.connect(audioCtx.destination);
+                    osc.start(now);
+                    osc.stop(now + 0.04);
+                }
+            } catch(e) {}
+        }
+
+        function speakEnglish(text) {
+            if ('speechSynthesis' in window) {
+                window.speechSynthesis.cancel();
+                const utterance = new SpeechSynthesisUtterance(text);
+                utterance.lang = 'en-US';
+                utterance.rate = 0.9;
+                window.speechSynthesis.speak(utterance);
+            }
+        }
+    </script>
+
+    <aside class="hidden md:flex flex-col w-64 border-r-2 border-flame-gray p-4 justify-between h-screen sticky top-0 bg-white z-20">
+        <div class="space-y-6">
+            <!-- Brand Logo -->
+            <div class="flex items-center gap-3 px-3 cursor-pointer" onclick="switchTab('learn')">
+                <div class="w-10 h-10 bg-flame-red text-white rounded-2xl flex items-center justify-center text-2xl shadow-3d-red">
+                    <i class="fa-solid fa-fire"></i>
+                </div>
+                <span class="text-2xl font-black text-flame-red tracking-tight font-sans">
+                    FlameLingo
+                </span>
+            </div>
+
+            <!-- Main Nav Items -->
+            <nav class="space-y-2">
+                <button id="nav-learn" onclick="switchTab('learn')" class="w-full flex items-center gap-4 px-4 py-3 rounded-2xl font-black text-sm uppercase tracking-wider text-flame-red bg-flame-redLight border-2 border-flame-red transition-all">
+                    <i class="fa-solid fa-fire-flame-curved text-xl w-6"></i> Вчитися
+                </button>
+                <button id="nav-leaderboard" onclick="switchTab('leaderboard')" class="w-full flex items-center gap-4 px-4 py-3 rounded-2xl font-black text-sm uppercase tracking-wider text-flame-grayDark hover:bg-rose-50 border-2 border-transparent transition-all">
+                    <i class="fa-solid fa-trophy text-xl text-amber-500 w-6"></i> Ліга Вогню
+                </button>
+                <button id="nav-shop" onclick="switchTab('shop')" class="w-full flex items-center gap-4 px-4 py-3 rounded-2xl font-black text-sm uppercase tracking-wider text-flame-grayDark hover:bg-rose-50 border-2 border-transparent transition-all">
+                    <i class="fa-solid fa-gem text-xl text-flame-purple w-6"></i> Магазин
+                </button>
+            </nav>
+        </div>
+
+        <!-- Sparky Fox Mascot Widget -->
+        <div class="bg-rose-50 rounded-3xl p-4 border-2 border-rose-200 text-center space-y-2 shadow-sm">
+            <div class="text-4xl">🦊🔥</div>
+            <p class="font-extrabold text-xs text-rose-800">Лисеня Спаркі каже: "Запалюй знаннями 10 хвилин щодня!"</p>
+        </div>
+    </aside>
+
+    <div class="flex-1 flex flex-col min-h-screen pb-20 md:pb-0">
+        
+        <header class="sticky top-0 bg-white/95 backdrop-blur-sm border-b-2 border-flame-gray z-30 px-4 py-3">
+            <div class="max-w-4xl mx-auto flex items-center justify-between">
+                <!-- Level Selector Button -->
+                <div onclick="openLevelModal()" class="flex items-center gap-2 cursor-pointer border-2 border-flame-red text-flame-red bg-rose-50 rounded-2xl px-3 py-1.5 hover:bg-rose-100 transition-all font-black text-xs uppercase tracking-wider shadow-sm">
+                    <span class="text-lg">🇺🇸</span>
+                    <span id="current-level-badge">A1 • Початковий</span>
+                    <i class="fa-solid fa-chevron-down text-xs ml-1"></i>
+                </div>
+
+                <!-- Game Stats -->
+                <div class="flex items-center gap-4 sm:gap-6">
+                    <div class="flex items-center gap-1.5 font-black text-flame-orange hover:scale-105 transition-transform" title="Серія днів">
+                        <i class="fa-solid fa-fire text-xl animate-bounce"></i>
+                        <span id="stat-streak">5</span>
+                    </div>
+
+                    <div class="flex items-center gap-1.5 font-black text-flame-red hover:scale-105 transition-transform" title="Рубіни">
+                        <i class="fa-solid fa-gem text-lg"></i>
+                        <span id="stat-gems">620</span>
+                    </div>
+
+                    <div class="flex items-center gap-1.5 font-black text-rose-600 hover:scale-105 transition-transform cursor-pointer" title="Життя" onclick="switchTab('shop')">
+                        <i class="fa-solid fa-heart text-xl animate-pulse"></i>
+                        <span id="stat-hearts">5</span>
+                    </div>
+                </div>
+            </div>
+        </header>
+
+        <main id="tab-learn" class="flex-1 max-w-xl w-full mx-auto p-4 sm:p-6 space-y-8">
+            
+            <div id="section-banner" class="bg-gradient-to-r from-flame-red to-rose-600 text-white p-5 rounded-3xl shadow-3d-red flex items-center justify-between">
+                <div>
+                    <span class="text-xs font-black uppercase tracking-widest text-rose-200" id="section-subtitle">Рівень A1 • Базовий</span>
+                    <h2 class="text-xl sm:text-2xl font-black" id="section-title">Перші кроки та знайомство</h2>
+                </div>
+                <button onclick="openLevelModal()" class="w-11 h-11 bg-white/20 hover:bg-white/30 rounded-2xl flex items-center justify-center font-bold text-white transition-colors">
+                    <i class="fa-solid fa-layer-group text-lg"></i>
+                </button>
+            </div>
+
+            <!-- Path Node Map -->
+            <div class="relative py-4 flex flex-col items-center space-y-6">
+
+                <!-- Node 1: Completed -->
+                <div class="flex flex-col items-center group cursor-pointer" onclick="openLessonModal('1-1')">
+                    <div class="w-20 h-20 rounded-full bg-flame-amber border-4 border-flame-amberDark shadow-3d-amber flex items-center justify-center text-white text-3xl font-black group-hover:scale-110 transition-transform">
+                        <i class="fa-solid fa-check"></i>
+                    </div>
+                    <span class="mt-2 text-xs font-extrabold uppercase text-amber-700 bg-amber-50 px-3 py-1 rounded-full border border-amber-200">Алфавіт та цифри</span>
+                </div>
+
+                <div class="w-2 h-8 bg-flame-gray rounded-full -my-2 transform translate-x-5"></div>
+
+                <!-- Node 2: ACTIVE CURRENT LESSON -->
+                <div class="flex flex-col items-center group cursor-pointer relative" onclick="openLessonModal('1-2')">
+                    <div class="absolute -top-12 bg-flame-red text-white text-xs font-black px-3.5 py-1.5 rounded-xl shadow-md uppercase tracking-wider animate-bounce flex items-center gap-1.5">
+                        <i class="fa-solid fa-bolt"></i> ПОЧАТИ!
+                    </div>
+                    <div class="w-24 h-24 rounded-full bg-flame-red border-4 border-flame-redDark shadow-3d-red flex items-center justify-center text-white text-4xl font-black group-hover:scale-105 transition-transform active-node-pulse">
+                        <i class="fa-solid fa-star"></i>
+                    </div>
+                    <span class="mt-2 text-xs font-black uppercase text-flame-red bg-rose-50 px-3.5 py-1 rounded-full border border-rose-200" id="active-lesson-title">Фрази вітання</span>
+                </div>
+
+                <div class="w-2 h-8 bg-flame-gray rounded-full -my-2 transform -translate-x-5"></div>
+
+                <!-- Node 3: Chest Reward -->
+                <div class="flex flex-col items-center group cursor-pointer" onclick="claimChestReward()">
+                    <div class="w-16 h-16 rounded-3xl bg-flame-purple border-4 border-flame-purpleDark shadow-3d-purple flex items-center justify-center text-white text-2xl group-hover:scale-110 transition-transform">
+                        <i class="fa-solid fa-gift animate-pulse"></i>
+                    </div>
+                    <span class="mt-2 text-xs font-bold text-flame-purple">Скриня з Рубінами</span>
+                </div>
+
+                <div class="w-2 h-8 bg-flame-gray rounded-full -my-2 transform translate-x-4"></div>
+
+                <!-- Node 4: Locked -->
+                <div class="flex flex-col items-center opacity-60">
+                    <div class="w-18 h-18 rounded-full bg-flame-gray border-4 border-slate-300 shadow-3d-gray flex items-center justify-center text-slate-400 text-2xl font-black">
+                        <i class="fa-solid fa-lock"></i>
+                    </div>
+                    <span class="mt-2 text-xs font-bold text-slate-400">Про себе та сім'ю</span>
+                </div>
+
+                <div class="w-2 h-8 bg-flame-gray rounded-full -my-2 transform -translate-x-4"></div>
+
+                <!-- Node 5: Trophy Final -->
+                <div class="flex flex-col items-center opacity-60">
+                    <div class="w-20 h-20 rounded-full bg-flame-amber border-4 border-flame-amberDark shadow-3d-amber flex items-center justify-center text-white text-3xl font-black">
+                        <i class="fa-solid fa-trophy"></i>
+                    </div>
+                    <span class="mt-2 text-xs font-bold text-slate-400">Екзамен Рівня</span>
+                </div>
+
+            </div>
+        </main>
+
+        <main id="tab-leaderboard" class="hidden flex-1 max-w-xl w-full mx-auto p-4 sm:p-6 space-y-6">
+            <div class="text-center space-y-2">
+                <div class="w-20 h-20 bg-rose-100 text-flame-red rounded-full flex items-center justify-center text-4xl mx-auto border-4 border-rose-300 shadow-md">
+                    🔥
+                </div>
+                <h2 class="text-2xl font-black text-flame-text">Рубінова Ліга</h2>
+                <p class="text-xs font-bold text-slate-400">Топ-3 знавці заходять у Вогняний Олімп через 3 дні!</p>
+            </div>
+
+            <div class="bg-white border-2 border-flame-gray rounded-3xl overflow-hidden divide-y-2 divide-flame-gray shadow-sm">
+                <div class="flex items-center justify-between p-4 bg-amber-50">
+                    <div class="flex items-center gap-4">
+                        <span class="font-black text-amber-500 text-lg w-6 text-center">1</span>
+                        <div class="w-10 h-10 rounded-full bg-rose-500 text-white font-black flex items-center justify-center text-base">
+                            V
+                        </div>
+                        <div>
+                            <h4 class="font-black text-sm text-flame-text">Viktoria_NY</h4>
+                            <span class="text-[11px] font-bold text-amber-600">🥇 Золота зона</span>
+                        </div>
+                    </div>
+                    <span class="font-black text-sm text-flame-text">540 XP</span>
+                </div>
+
+                <div class="flex items-center justify-between p-4 bg-rose-50/80 border-l-4 border-flame-red">
+                    <div class="flex items-center gap-4">
+                        <span class="font-black text-flame-red text-lg w-6 text-center">2</span>
+                        <div class="w-10 h-10 rounded-full bg-flame-red text-white font-black flex items-center justify-center text-base">
+                            ВИ
+                        </div>
+                        <div>
+                            <h4 class="font-black text-sm text-flame-text">Ви (FlameMaster)</h4>
+                            <span class="text-[11px] font-bold text-flame-red">🥈 Срібна зона</span>
+                        </div>
+                    </div>
+                    <span class="font-black text-sm text-flame-red" id="lb-user-xp">390 XP</span>
+                </div>
+
+                <div class="flex items-center justify-between p-4">
+                    <div class="flex items-center gap-4">
+                        <span class="font-black text-amber-700 text-lg w-6 text-center">3</span>
+                        <div class="w-10 h-10 rounded-full bg-blue-500 text-white font-black flex items-center justify-center text-base">
+                            D
+                        </div>
+                        <div>
+                            <h4 class="font-black text-sm text-flame-text">Dmytro_UK</h4>
+                            <span class="text-[11px] font-bold text-amber-700">🥉 Бронзова зона</span>
+                        </div>
+                    </div>
+                    <span class="font-black text-sm text-flame-text">310 XP</span>
+                </div>
+
+                <div class="flex items-center justify-between p-4">
+                    <div class="flex items-center gap-4">
+                        <span class="font-black text-slate-400 text-lg w-6 text-center">4</span>
+                        <div class="w-10 h-10 rounded-full bg-slate-300 text-white font-black flex items-center justify-center text-base">
+                            O
+                        </div>
+                        <div>
+                            <h4 class="font-black text-sm text-flame-text">Olena_Kyiv</h4>
+                            <span class="text-[11px] font-bold text-slate-400">Утримання ліги</span>
+                        </div>
+                    </div>
+                    <span class="font-black text-sm text-flame-text">220 XP</span>
+                </div>
+            </div>
+        </main>
+
+        <main id="tab-shop" class="hidden flex-1 max-w-xl w-full mx-auto p-4 sm:p-6 space-y-6">
+            <div class="text-center space-y-2">
+                <div class="w-20 h-20 bg-rose-100 text-flame-red rounded-full flex items-center justify-center text-4xl mx-auto border-4 border-rose-200 shadow-md">
+                    🏪
+                </div>
+                <h2 class="text-2xl font-black text-flame-text">Магазин FlameLingo</h2>
+                <p class="text-xs font-bold text-slate-400">Обмінюй свої зароблені рубіни на корисні бонуси!</p>
+            </div>
+
+            <div class="space-y-4">
+                <div class="bg-white border-2 border-flame-gray p-5 rounded-3xl flex items-center justify-between shadow-sm">
+                    <div class="flex items-center gap-4">
+                        <div class="w-14 h-14 bg-rose-100 text-rose-600 rounded-2xl flex items-center justify-center text-3xl shrink-0">
+                            ❤️
+                        </div>
+                        <div>
+                            <h4 class="font-black text-base text-flame-text">Повне відновлення сердець</h4>
+                            <p class="text-xs font-bold text-slate-400">Відновлює всі 5 сердець для продовження навчання</p>
+                        </div>
+                    </div>
+                    <button onclick="buyShopItem('hearts', 100)" class="btn-3d bg-flame-red hover:bg-flame-redDark text-white font-black text-xs px-4 py-3 rounded-2xl shadow-3d-red flex items-center gap-1.5">
+                        <i class="fa-solid fa-gem"></i> 100
+                    </button>
+                </div>
+
+                <div class="bg-white border-2 border-flame-gray p-5 rounded-3xl flex items-center justify-between shadow-sm">
+                    <div class="flex items-center gap-4">
+                        <div class="w-14 h-14 bg-amber-100 text-flame-orange rounded-2xl flex items-center justify-center text-3xl shrink-0">
+                            🛡️
+                        </div>
+                        <div>
+                            <h4 class="font-black text-base text-flame-text">Щит вогняного стрику</h4>
+                            <p class="text-xs font-bold text-slate-400">Захистить твій стрик, якщо пропустиш 1 день</p>
+                        </div>
+                    </div>
+                    <button onclick="buyShopItem('freeze', 200)" class="btn-3d bg-flame-red hover:bg-flame-redDark text-white font-black text-xs px-4 py-3 rounded-2xl shadow-3d-red flex items-center gap-1.5">
+                        <i class="fa-solid fa-gem"></i> 200
+                    </button>
+                </div>
+
+                <div class="bg-white border-2 border-flame-gray p-5 rounded-3xl flex items-center justify-between shadow-sm">
+                    <div class="flex items-center gap-4">
+                        <div class="w-14 h-14 bg-purple-100 text-flame-purple rounded-2xl flex items-center justify-center text-3xl shrink-0">
+                            🚀
+                        </div>
+                        <div>
+                            <h4 class="font-black text-base text-flame-text">Подвійний досвід (2x XP)</h4>
+                            <p class="text-xs font-bold text-slate-400">Отримуй удвічі більше XP протягом 15 хвилин</p>
+                        </div>
+                    </div>
+                    <button onclick="buyShopItem('double', 150)" class="btn-3d bg-flame-red hover:bg-flame-redDark text-white font-black text-xs px-4 py-3 rounded-2xl shadow-3d-red flex items-center gap-1.5">
+                        <i class="fa-solid fa-gem"></i> 150
+                    </button>
+                </div>
+            </div>
+        </main>
+
+        <!-- Mobile Navigation Footer -->
+        <nav class="md:hidden fixed bottom-0 left-0 right-0 bg-white border-t-2 border-flame-gray flex justify-around p-2 z-30">
+            <button onclick="switchTab('learn')" class="flex flex-col items-center gap-1 p-2 text-flame-red">
+                <i class="fa-solid fa-fire-flame-curved text-xl"></i>
+                <span class="text-[10px] font-black uppercase">Уроки</span>
+            </button>
+            <button onclick="switchTab('leaderboard')" class="flex flex-col items-center gap-1 p-2 text-flame-grayDark">
+                <i class="fa-solid fa-trophy text-xl text-amber-500"></i>
+                <span class="text-[10px] font-black uppercase">Ліга</span>
+            </button>
+            <button onclick="switchTab('shop')" class="flex flex-col items-center gap-1 p-2 text-flame-grayDark">
+                <i class="fa-solid fa-gem text-xl text-flame-purple"></i>
+                <span class="text-[10px] font-black uppercase">Магазин</span>
+            </button>
+        </nav>
+
+    </div>
+
+    <div id="modal-level-select" class="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+        <div class="bg-white rounded-3xl max-w-md w-full p-6 space-y-5 border-4 border-flame-red shadow-2xl relative">
+            <button onclick="closeLevelModal()" class="absolute top-4 right-4 text-slate-400 hover:text-slate-700 text-xl">
+                <i class="fa-solid fa-xmark"></i>
+            </button>
+
+            <div class="text-center space-y-1">
+                <span class="text-3xl">🎯</span>
+                <h3 class="text-xl font-black text-flame-text">Обери свій рівень англійської</h3>
+                <p class="text-xs font-bold text-slate-400">Завдання адаптуються під твої знання!</p>
+            </div>
+
+            <div class="space-y-3">
+                <button onclick="selectEnglishLevel('A1')" class="w-full text-left p-4 rounded-2xl border-2 border-flame-red bg-rose-50 hover:bg-rose-100 flex items-center justify-between transition-all">
+                    <div>
+                        <h4 class="font-black text-sm text-flame-red">A1 • Beginner (Початковий)</h4>
+                        <p class="text-xs font-semibold text-slate-500">Алфавіт, база, прості фрази</p>
+                    </div>
+                    <i class="fa-solid fa-check text-flame-red font-black"></i>
+                </button>
+
+                <button onclick="selectEnglishLevel('A2')" class="w-full text-left p-4 rounded-2xl border-2 border-flame-gray hover:border-flame-red bg-white hover:bg-rose-50 flex items-center justify-between transition-all">
+                    <div>
+                        <h4 class="font-black text-sm text-flame-text">A2 • Elementary (Основний)</h4>
+                        <p class="text-xs font-semibold text-slate-500">Щоденні теми, минулий час, діалоги</p>
+                    </div>
+                </button>
+
+                <button onclick="selectEnglishLevel('B1')" class="w-full text-left p-4 rounded-2xl border-2 border-flame-gray hover:border-flame-red bg-white hover:bg-rose-50 flex items-center justify-between transition-all">
+                    <div>
+                        <h4 class="font-black text-sm text-flame-text">B1 • Intermediate (Середній)</h4>
+                        <p class="text-xs font-semibold text-slate-500">Подорожі, думки, фразові дієслова</p>
+                    </div>
+                </button>
+
+                <button onclick="selectEnglishLevel('B2')" class="w-full text-left p-4 rounded-2xl border-2 border-flame-gray hover:border-flame-red bg-white hover:bg-rose-50 flex items-center justify-between transition-all">
+                    <div>
+                        <h4 class="font-black text-sm text-flame-text">B2 • Upper-Intermediate (Високий)</h4>
+                        <p class="text-xs font-semibold text-slate-500">Ідіоми, складна граматика, бесіди</p>
+                    </div>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <div id="modal-lesson-start" class="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+        <div class="bg-white rounded-3xl max-w-sm w-full p-6 space-y-6 text-center border-4 border-flame-red shadow-2xl relative">
+            <button onclick="closeLessonModal()" class="absolute top-4 right-4 text-slate-400 hover:text-slate-700 text-xl">
+                <i class="fa-solid fa-xmark"></i>
+            </button>
+
+            <div class="w-20 h-20 bg-rose-100 text-flame-red rounded-full flex items-center justify-center text-4xl mx-auto shadow-inner border-2 border-rose-200">
+                🦊
+            </div>
+
+            <div class="space-y-1">
+                <h3 class="text-2xl font-black text-flame-text" id="modal-lesson-name">Урок 2: Вітання</h3>
+                <p class="text-xs font-bold text-slate-400" id="modal-lesson-desc">Пройди інтерактивне тренування та отримай XP!</p>
+            </div>
+
+            <div class="bg-rose-50 p-3 rounded-2xl border-2 border-rose-200 flex items-center justify-around font-black text-xs text-flame-red">
+                <span>🎯 3 завдання</span>
+                <span>⚡ +20 XP</span>
+            </div>
+
+            <button onclick="startLessonProcess()" class="w-full btn-3d bg-flame-red hover:bg-flame-redDark text-white font-black py-4 rounded-2xl shadow-3d-red text-base uppercase tracking-wider">
+                ПОЧАТИ ТРЕНУВАННЯ
+            </button>
+        </div>
+    </div>
+
+    <div id="modal-custom-toast" class="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+        <div class="bg-white rounded-3xl max-w-sm w-full p-6 space-y-5 text-center border-4 border-flame-red shadow-2xl relative">
+            <div id="toast-icon-box" class="w-16 h-16 bg-rose-100 text-flame-red rounded-full flex items-center justify-center text-3xl mx-auto border-2 border-rose-200">
+                🔥
+            </div>
+            <div class="space-y-1">
+                <h3 id="toast-title" class="text-xl font-black text-flame-text">Сповіщення</h3>
+                <p id="toast-msg" class="text-xs font-bold text-slate-500">Текст вашого повідомлення тут.</p>
+            </div>
+            <button onclick="closeCustomToast()" class="w-full btn-3d bg-flame-red hover:bg-flame-redDark text-white font-black py-3 rounded-2xl shadow-3d-red text-sm uppercase tracking-wider">
+                Зрозуміло!
+            </button>
+        </div>
+    </div>
+
+    <div id="screen-exercise" class="fixed inset-0 bg-white z-50 hidden flex flex-col justify-between">
+        
+        <header class="max-w-4xl w-full mx-auto p-4 flex items-center gap-4">
+            <button onclick="quitExercise()" class="text-slate-400 hover:text-slate-700 text-2xl p-2">
+                <i class="fa-solid fa-xmark"></i>
+            </button>
+
+            <div class="flex-1 bg-flame-gray h-4 rounded-full overflow-hidden p-0.5">
+                <div id="exercise-progress" class="bg-gradient-to-r from-flame-orange to-flame-red h-full rounded-full transition-all duration-300 w-0"></div>
+            </div>
+
+            <div class="flex items-center gap-1.5 font-black text-rose-600 text-lg">
+                <i class="fa-solid fa-heart"></i>
+                <span id="exercise-hearts-count">5</span>
+            </div>
+        </header>
+
+        <main class="max-w-2xl w-full mx-auto p-4 flex-1 flex flex-col justify-center space-y-6">
+            
+            <div class="flex items-start gap-4">
+                <div id="sparky-mascot" class="text-5xl sm:text-6xl animate-bounce">
+                    🦊
+                </div>
+                <div class="relative bg-white border-2 border-flame-gray p-4 sm:p-5 rounded-2xl speech-bubble flex-1 shadow-sm flex items-center justify-between">
+                    <div>
+                        <span class="text-[10px] font-black uppercase text-flame-red bg-rose-50 px-2 py-0.5 rounded border border-rose-200">Завдання</span>
+                        <h3 id="ex-prompt-text" class="text-lg sm:text-xl font-extrabold text-flame-text mt-1">
+                            Перекладіть це речення:
+                        </h3>
+                    </div>
+                    <button id="speaker-btn" onclick="speakCurrentSentence()" class="w-10 h-10 bg-flame-red text-white rounded-xl flex items-center justify-center text-lg hover:bg-flame-redDark transition-colors shadow-3d-red">
+                        <i class="fa-solid fa-volume-high"></i>
+                    </button>
+                </div>
+            </div>
+
+            <div id="ex-target-sentence" class="text-2xl sm:text-3xl font-black text-flame-text text-center py-2">
+                "Hello, how are you?"
+            </div>
+
+            <div id="ex-type-wordbank" class="space-y-6 w-full">
+                <div id="wordbank-slot" class="min-h-[64px] border-b-2 border-flame-gray p-2 flex flex-wrap gap-2 items-center justify-center">
+                </div>
+
+                <div id="wordbank-pool" class="flex flex-wrap gap-2.5 justify-center pt-4">
+                </div>
+            </div>
+
+            <div id="ex-type-matching" class="hidden grid grid-cols-2 gap-3 w-full max-w-md mx-auto">
+            </div>
+
+            <div id="ex-type-mc" class="hidden grid grid-cols-1 sm:grid-cols-2 gap-3 w-full">
+            </div>
+
+        </main>
+
+        <footer id="ex-footer" class="border-t-2 border-flame-gray p-4 sm:p-6 bg-white transition-colors">
+            <div class="max-w-2xl mx-auto flex items-center justify-between">
+                <div id="ex-feedback" class="hidden flex items-center gap-3">
+                    <div id="ex-feedback-icon" class="w-12 h-12 rounded-full flex items-center justify-center text-white text-2xl font-black">
+                    </div>
+                    <div>
+                        <h4 id="ex-feedback-title" class="font-black text-lg"></h4>
+                        <p id="ex-feedback-subtitle" class="text-xs font-bold text-slate-500"></p>
+                    </div>
+                </div>
+
+                <button id="ex-action-btn" onclick="checkCurrentExercise()" class="ml-auto btn-3d bg-flame-red hover:bg-flame-redDark text-white font-black text-base uppercase tracking-wider px-8 py-3.5 rounded-2xl shadow-3d-red">
+                    ПЕРЕВІРИТИ
+                </button>
+            </div>
+        </footer>
+
+    </div>
+
+    <script>
+        const appState = {
+            level: 'A1',
+            streak: 5,
+            gems: 620,
+            hearts: 5,
+            xp: 390,
+            currentExerciseIndex: 0,
+            userSelectedWords: [],
+            selectedMcOption: null,
+            exerciseChecked: false,
+            activeExerciseSet: []
+        };
+
+        const EXERCISES_BY_LEVEL = {
+            'A1': [
+                {
+                    type: 'wordbank',
+                    prompt: 'Перекладіть це речення:',
+                    sentence: 'Hello, how are you?',
+                    words: ['Привіт,', 'як', 'справи?', 'добре', 'дякую', 'вода'],
+                    correct: ['Привіт,', 'як', 'справи?']
+                },
+                {
+                    type: 'matching',
+                    prompt: 'Утворіть слова-пари:',
+                    pairs: [
+                        { en: 'Cat', uk: 'Кіт' },
+                        { en: 'Sun', uk: 'Сонце' },
+                        { en: 'Book', uk: 'Книга' },
+                        { en: 'Water', uk: 'Вода' }
+                    ]
+                },
+                {
+                    type: 'mc',
+                    prompt: 'Виберіть правильну відповідь:',
+                    sentence: 'Good evening!',
+                    options: ['Доброго вечора!', 'Доброго ранку!', 'На добраніч!', 'Як справи?'],
+                    correct: 'Доброго вечора!'
+                }
+            ],
+            'A2': [
+                {
+                    type: 'wordbank',
+                    prompt: 'Перекладіть минулий час:',
+                    sentence: 'I bought a new book yesterday.',
+                    words: ['Я', 'купив', 'нову', 'книгу', 'учора.', 'завтра', 'бачив'],
+                    correct: ['Я', 'купив', 'нову', 'книгу', 'учора.']
+                },
+                {
+                    type: 'matching',
+                    prompt: 'Знайдіть відповідники тем:',
+                    pairs: [
+                        { en: 'Weather', uk: 'Погода' },
+                        { en: 'Breakfast', uk: 'Сніданок' },
+                        { en: 'Travel', uk: 'Подорож' },
+                        { en: 'Family', uk: 'Сім\'я' }
+                    ]
+                },
+                {
+                    type: 'mc',
+                    prompt: 'Оберіть правильну форму дієслова:',
+                    sentence: 'She ___ to music every night.',
+                    options: ['listens', 'listen', 'listening', 'listened'],
+                    correct: 'listens'
+                }
+            ],
+            'B1': [
+                {
+                    type: 'wordbank',
+                    prompt: 'Складіть умовне речення:',
+                    sentence: 'If I have time, I will call you.',
+                    words: ['Якщо', 'в', 'мене', 'буде', 'час,', 'я', 'подзвоню', 'тобі.'],
+                    correct: ['Якщо', 'в', 'мене', 'буде', 'час,', 'я', 'подзвоню', 'тобі.']
+                },
+                {
+                    type: 'matching',
+                    prompt: 'Пари фразових дієслів:',
+                    pairs: [
+                        { en: 'Give up', uk: 'Здаватися' },
+                        { en: 'Look for', uk: 'Шукати' },
+                        { en: 'Carry on', uk: 'Продовжувати' },
+                        { en: 'Find out', uk: 'З\'ясовувати' }
+                    ]
+                },
+                {
+                    type: 'mc',
+                    prompt: 'Виберіть синонім до "Important":',
+                    sentence: 'This project is highly essential.',
+                    options: ['Crucial', 'Tiny', 'Boring', 'Unusual'],
+                    correct: 'Crucial'
+                }
+            ],
+            'B2': [
+                {
+                    type: 'wordbank',
+                    prompt: 'Перекладіть ідіому:',
+                    sentence: 'It is a blessing in disguise.',
+                    words: ['Це', 'нещастя,', 'яке', 'обернулося', 'добром.'],
+                    correct: ['Це', 'нещастя,', 'яке', 'обернулося', 'добром.']
+                },
+                {
+                    type: 'matching',
+                    prompt: 'Складні терміни та ідіоми:',
+                    pairs: [
+                        { en: 'Break the ice', uk: 'Розрядити обстановку' },
+                        { en: 'Hit the sack', uk: 'Лягати спати' },
+                        { en: 'Ambiguous', uk: 'Двозначний' },
+                        { en: 'Resilient', uk: 'Стійкий' }
+                    ]
+                },
+                {
+                    type: 'mc',
+                    prompt: 'Виберіть граматично правильну конструкцію:',
+                    sentence: 'Hardly ___ when the phone rang.',
+                    options: ['had I arrived', 'I had arrived', 'did I arrived', 'I arrived'],
+                    correct: 'had I arrived'
+                }
+            ]
+        };
+
+        function showCustomToast(title, msg, icon = '🔥') {
+            document.getElementById('toast-title').innerText = title;
+            document.getElementById('toast-msg').innerText = msg;
+            document.getElementById('toast-icon-box').innerText = icon;
+            document.getElementById('modal-custom-toast').classList.remove('hidden');
+        }
+
+        function closeCustomToast() {
+            playSynthesizedSound('pop');
+            document.getElementById('modal-custom-toast').classList.add('hidden');
+        }
+
+        function switchTab(tabName) {
+            playSynthesizedSound('pop');
+            ['learn', 'leaderboard', 'shop'].forEach(t => {
+                const elem = document.getElementById(`tab-${t}`);
+                if (elem) elem.classList.add('hidden');
+                
+                const navBtn = document.getElementById(`nav-${t}`);
+                if (navBtn) {
+                    navBtn.className = "w-full flex items-center gap-4 px-4 py-3 rounded-2xl font-black text-sm uppercase tracking-wider text-flame-grayDark hover:bg-rose-50 border-2 border-transparent transition-all";
+                }
+            });
+
+            const targetTab = document.getElementById(`tab-${tabName}`);
+            if (targetTab) targetTab.classList.remove('hidden');
+
+            const activeNavBtn = document.getElementById(`nav-${tabName}`);
+            if (activeNavBtn) {
+                activeNavBtn.className = "w-full flex items-center gap-4 px-4 py-3 rounded-2xl font-black text-sm uppercase tracking-wider text-flame-red bg-flame-redLight border-2 border-flame-red transition-all";
+            }
+        }
+
+        function openLevelModal() {
+            playSynthesizedSound('pop');
+            document.getElementById('modal-level-select').classList.remove('hidden');
+        }
+        function closeLevelModal() {
+            playSynthesizedSound('pop');
+            document.getElementById('modal-level-select').classList.add('hidden');
+        }
+
+        function selectEnglishLevel(lvl) {
+            appState.level = lvl;
+            closeLevelModal();
+
+            const titles = {
+                'A1': { name: 'A1 • Початковий', sub: 'Рівень A1 • Базові знання', active: 'Фрази вітання' },
+                'A2': { name: 'A2 • Основний', sub: 'Рівень A2 • Щоденні теми', active: 'Минулий час (Past Simple)' },
+                'B1': { name: 'B1 • Середній', sub: 'Рівень B1 • Умовні речення', active: 'Фразові дієслова' },
+                'B2': { name: 'B2 • Високий', sub: 'Рівень B2 • Ідіоми та B2 Grammar', active: 'Просунуті ідіоми' }
+            };
+
+            document.getElementById('current-level-badge').innerText = titles[lvl].name;
+            document.getElementById('section-subtitle').innerText = titles[lvl].sub;
+            document.getElementById('active-lesson-title').innerText = titles[lvl].active;
+            document.getElementById('modal-lesson-name').innerText = `Урок: ${titles[lvl].active}`;
+
+            playSynthesizedSound('correct');
+        }
+
+        function openLessonModal(id) {
+            playSynthesizedSound('pop');
+            document.getElementById('modal-lesson-start').classList.remove('hidden');
+        }
+        function closeLessonModal() {
+            playSynthesizedSound('pop');
+            document.getElementById('modal-lesson-start').classList.add('hidden');
+        }
+
+        function startLessonProcess() {
+            closeLessonModal();
+            appState.currentExerciseIndex = 0;
+            appState.activeExerciseSet = EXERCISES_BY_LEVEL[appState.level];
+            
+            document.getElementById('screen-exercise').classList.remove('hidden');
+            renderExercise();
+        }
+
+        function quitExercise() {
+            playSynthesizedSound('pop');
+            document.getElementById('screen-exercise').classList.add('hidden');
+        }
+
+        function renderExercise() {
+            appState.exerciseChecked = false;
+            appState.userSelectedWords = [];
+            appState.selectedMcOption = null;
+
+            resetExerciseFooter();
+
+            const current = appState.activeExerciseSet[appState.currentExerciseIndex];
+            const progress = (appState.currentExerciseIndex / appState.activeExerciseSet.length) * 100;
+
+            document.getElementById('exercise-progress').style.width = `${progress}%`;
+            document.getElementById('exercise-hearts-count').innerText = appState.hearts;
+            document.getElementById('ex-prompt-text').innerText = current.prompt;
+
+            document.getElementById('ex-type-wordbank').classList.add('hidden');
+            document.getElementById('ex-type-matching').classList.add('hidden');
+            document.getElementById('ex-type-mc').classList.add('hidden');
+
+            if (current.type === 'wordbank') {
+                renderWordBank(current);
+            } else if (current.type === 'matching') {
+                renderMatching(current);
+            } else if (current.type === 'mc') {
+                renderMC(current);
+            }
+        }
+
+        function renderWordBank(data) {
+            document.getElementById('ex-type-wordbank').classList.remove('hidden');
+            document.getElementById('ex-target-sentence').innerText = `"${data.sentence}"`;
+            speakEnglish(data.sentence);
+
+            const slot = document.getElementById('wordbank-slot');
+            const pool = document.getElementById('wordbank-pool');
+
+            slot.innerHTML = '';
+            pool.innerHTML = '';
+
+            data.words.forEach(word => {
+                const btn = document.createElement('button');
+                btn.className = 'btn-3d bg-white border-2 border-flame-gray hover:border-flame-red text-flame-text font-black px-4 py-2.5 rounded-2xl text-base shadow-3d-gray';
+                btn.innerText = word;
+                btn.onclick = () => selectWordBankWord(btn, word);
+                pool.appendChild(btn);
+            });
+        }
+
+        function selectWordBankWord(btn, word) {
+            if (appState.exerciseChecked) return;
+            playSynthesizedSound('pop');
+
+            appState.userSelectedWords.push(word);
+            btn.classList.add('opacity-0', 'pointer-events-none');
+
+            const slotPill = document.createElement('button');
+            slotPill.className = 'btn-3d bg-flame-red text-white font-black px-4 py-2.5 rounded-2xl text-base shadow-3d-red';
+            slotPill.innerText = word;
+            slotPill.onclick = () => deselectWordBankWord(slotPill, btn, word);
+            document.getElementById('wordbank-slot').appendChild(slotPill);
+        }
+
+        function deselectWordBankWord(slotPill, originalBtn, word) {
+            if (appState.exerciseChecked) return;
+            playSynthesizedSound('pop');
+
+            appState.userSelectedWords = appState.userSelectedWords.filter(w => w !== word);
+            slotPill.remove();
+            originalBtn.classList.remove('opacity-0', 'pointer-events-none');
+        }
+
+        let matchedCount = 0;
+        let selectedMatchingPair = { en: null, uk: null };
+
+        function renderMatching(data) {
+            document.getElementById('ex-type-matching').classList.remove('hidden');
+            document.getElementById('ex-target-sentence').innerText = 'Знайдіть відповідні пари';
+            
+            matchedCount = 0;
+            const container = document.getElementById('ex-type-matching');
+            container.innerHTML = '';
+
+            const enList = data.pairs.map(p => ({ val: p.en, type: 'en' }));
+            const ukList = data.pairs.map(p => ({ val: p.uk, type: 'uk' })).sort(() => Math.random() - 0.5);
+
+            [...enList, ...ukList].forEach(item => {
+                const btn = document.createElement('button');
+                btn.className = 'btn-3d bg-white border-2 border-flame-gray hover:border-flame-red text-flame-text font-black p-3.5 rounded-2xl text-sm shadow-3d-gray flex items-center justify-center';
+                btn.innerText = item.val;
+                btn.onclick = () => handleMatchingClick(btn, item, data.pairs);
+                container.appendChild(btn);
+            });
+        }
+
+        function handleMatchingClick(btn, item, pairs) {
+            if (appState.exerciseChecked) return;
+            playSynthesizedSound('pop');
+
+            if (item.type === 'en') {
+                speakEnglish(item.val);
+            }
+
+            btn.className = 'btn-3d bg-rose-100 border-2 border-flame-red text-flame-red font-black p-3.5 rounded-2xl text-sm shadow-3d-red flex items-center justify-center';
+            
+            if (item.type === 'en') selectedMatchingPair.en = { btn, val: item.val };
+            if (item.type === 'uk') selectedMatchingPair.uk = { btn, val: item.val };
+
+            if (selectedMatchingPair.en && selectedMatchingPair.uk) {
+                const match = pairs.find(p => p.en === selectedMatchingPair.en.val && p.uk === selectedMatchingPair.uk.val);
+                if (match) {
+                    playSynthesizedSound('correct');
+                    selectedMatchingPair.en.btn.className = 'bg-amber-100 border-2 border-flame-amber text-amber-700 font-black p-3.5 rounded-2xl text-sm opacity-50 pointer-events-none flex items-center justify-center';
+                    selectedMatchingPair.uk.btn.className = 'bg-amber-100 border-2 border-flame-amber text-amber-700 font-black p-3.5 rounded-2xl text-sm opacity-50 pointer-events-none flex items-center justify-center';
+                    matchedCount++;
+                    if (matchedCount === pairs.length) {
+                        appState.userSelectedWords = ['ALL_MATCHED'];
+                    }
+                } else {
+                    playSynthesizedSound('wrong');
+                    selectedMatchingPair.en.btn.className = 'btn-3d bg-white border-2 border-flame-gray text-flame-text font-black p-3.5 rounded-2xl text-sm shadow-3d-gray flex items-center justify-center';
+                    selectedMatchingPair.uk.btn.className = 'btn-3d bg-white border-2 border-flame-gray text-flame-text font-black p-3.5 rounded-2xl text-sm shadow-3d-gray flex items-center justify-center';
+                }
+                selectedMatchingPair = { en: null, uk: null };
+            }
+        }
+
+        function renderMC(data) {
+            document.getElementById('ex-type-mc').classList.remove('hidden');
+            document.getElementById('ex-target-sentence').innerText = `"${data.sentence}"`;
+            speakEnglish(data.sentence);
+
+            const container = document.getElementById('ex-type-mc');
+            container.innerHTML = '';
+
+            data.options.forEach((opt) => {
+                const btn = document.createElement('button');
+                btn.className = 'btn-3d bg-white border-2 border-flame-gray hover:border-flame-red text-flame-text font-black p-4 rounded-2xl text-left text-base shadow-3d-gray';
+                btn.innerText = opt;
+                btn.onclick = () => {
+                    if (appState.exerciseChecked) return;
+                    playSynthesizedSound('pop');
+                    appState.selectedMcOption = opt;
+                    Array.from(container.children).forEach(c => c.className = 'btn-3d bg-white border-2 border-flame-gray text-flame-text font-black p-4 rounded-2xl text-left text-base shadow-3d-gray');
+                    btn.className = 'btn-3d bg-rose-50 border-2 border-flame-red text-flame-red font-black p-4 rounded-2xl text-left text-base shadow-3d-red';
+                };
+                container.appendChild(btn);
+            });
+        }
+
+        function speakCurrentSentence() {
+            const current = appState.activeExerciseSet[appState.currentExerciseIndex];
+            if (current.sentence) speakEnglish(current.sentence);
+        }
+
+        function checkCurrentExercise() {
+            if (appState.exerciseChecked) {
+                appState.currentExerciseIndex++;
+                if (appState.currentExerciseIndex >= appState.activeExerciseSet.length) {
+                    finishLessonSuccess();
+                } else {
+                    renderExercise();
+                }
+                return;
+            }
+
+            const current = appState.activeExerciseSet[appState.currentExerciseIndex];
+            let isCorrect = false;
+
+            if (current.type === 'wordbank') {
+                isCorrect = JSON.stringify(appState.userSelectedWords) === JSON.stringify(current.correct);
+            } else if (current.type === 'matching') {
+                isCorrect = appState.userSelectedWords.includes('ALL_MATCHED');
+            } else if (current.type === 'mc') {
+                isCorrect = appState.selectedMcOption === current.correct;
+            }
+
+            appState.exerciseChecked = true;
+
+            const footer = document.getElementById('ex-footer');
+            const feedback = document.getElementById('ex-feedback');
+            const icon = document.getElementById('ex-feedback-icon');
+            const title = document.getElementById('ex-feedback-title');
+            const sub = document.getElementById('ex-feedback-subtitle');
+            const actionBtn = document.getElementById('ex-action-btn');
+
+            feedback.classList.remove('hidden');
+
+            if (isCorrect) {
+                playSynthesizedSound('correct');
+                footer.className = 'border-t-2 border-emerald-200 p-4 sm:p-6 bg-emerald-50 transition-colors';
+                icon.className = 'w-12 h-12 rounded-full bg-emerald-500 flex items-center justify-center text-white text-2xl font-black';
+                icon.innerHTML = '<i class="fa-solid fa-check"></i>';
+                title.className = 'font-black text-lg text-emerald-800';
+                title.innerText = 'Палаючий успіх!';
+                sub.innerText = 'Відповідь абсолютно правильна.';
+                actionBtn.className = 'ml-auto btn-3d bg-emerald-500 hover:bg-emerald-600 text-white font-black text-base uppercase tracking-wider px-8 py-3.5 rounded-2xl shadow-3d-blue';
+            } else {
+                playSynthesizedSound('wrong');
+                appState.hearts = Math.max(0, appState.hearts - 1);
+                document.getElementById('stat-hearts').innerText = appState.hearts;
+                document.getElementById('exercise-hearts-count').innerText = appState.hearts;
+
+                footer.className = 'border-t-2 border-rose-200 p-4 sm:p-6 bg-flame-redLight transition-colors';
+                icon.className = 'w-12 h-12 rounded-full bg-flame-red flex items-center justify-center text-white text-2xl font-black';
+                icon.innerHTML = '<i class="fa-solid fa-xmark"></i>';
+                title.className = 'font-black text-lg text-flame-redDark';
+                title.innerText = 'Правильний варіант:';
+                sub.innerText = current.correct ? (Array.isArray(current.correct) ? current.correct.join(' ') : current.correct) : 'Усі пари знайдено';
+                actionBtn.className = 'ml-auto btn-3d bg-flame-red hover:bg-flame-redDark text-white font-black text-base uppercase tracking-wider px-8 py-3.5 rounded-2xl shadow-3d-red';
+
+                if (appState.hearts === 0) {
+                    setTimeout(() => {
+                        showCustomToast('Увага!', 'У вас закінчилися життя! Завітайте до Магазину для поповнення сердець.', '💔');
+                        quitExercise();
+                    }, 400);
+                }
+            }
+
+            actionBtn.innerText = 'ПРОДОВЖИТИ';
+        }
+
+        function resetExerciseFooter() {
+            document.getElementById('ex-footer').className = 'border-t-2 border-flame-gray p-4 sm:p-6 bg-white transition-colors';
+            document.getElementById('ex-feedback').classList.add('hidden');
+            const btn = document.getElementById('ex-action-btn');
+            btn.className = 'ml-auto btn-3d bg-flame-red hover:bg-flame-redDark text-white font-black text-base uppercase tracking-wider px-8 py-3.5 rounded-2xl shadow-3d-red';
+            btn.innerText = 'ПЕРЕВІРИТИ';
+        }
+
+        function finishLessonSuccess() {
+            playSynthesizedSound('correct');
+            confetti({ particleCount: 110, spread: 80, origin: { y: 0.6 } });
+
+            appState.xp += 20;
+            appState.gems += 30;
+
+            document.getElementById('lb-user-xp').innerText = `${appState.xp} XP`;
+            document.getElementById('stat-gems').innerText = appState.gems;
+
+            showCustomToast('Перемога!', '🔥 Урок пройдено! Твій стрик розгоряється! (+20 XP, +30 Рубінів)', '🏆');
+            quitExercise();
+        }
+
+        function buyShopItem(type, cost) {
+            if (appState.gems < cost) {
+                playSynthesizedSound('wrong');
+                showCustomToast('Помилка', 'Недостатньо рубінів!', '❌');
+                return;
+            }
+
+            playSynthesizedSound('correct');
+            appState.gems -= cost;
+            document.getElementById('stat-gems').innerText = appState.gems;
+
+            if (type === 'hearts') {
+                appState.hearts = 5;
+                document.getElementById('stat-hearts').innerText = 5;
+                showCustomToast('Поповнення', '❤️ Всі серця відновлено!', '❤️');
+            } else if (type === 'freeze') {
+                showCustomToast('Захист', '🛡️ Щит вогняного стрику активовано!', '🛡️');
+            } else if (type === 'double') {
+                showCustomToast('Буст', '🚀 Подвійний XP активовано на 15 хвилин!', '🚀');
+            }
+        }
+
+        function claimChestReward() {
+            playSynthesizedSound('correct');
+            confetti({ particleCount: 70, spread: 60, origin: { y: 0.5 } });
+            appState.gems += 60;
+            document.getElementById('stat-gems').innerText = appState.gems;
+            showCustomToast('Винагорода!', '💎 Вітаємо! Ви відкрили скриню й отримали +60 рубінів!', '🎁');
+        }
+    </script>
+</body>
+</html>
